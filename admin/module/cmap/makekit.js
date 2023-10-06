@@ -296,16 +296,7 @@ class KitSetTool extends KitBuildCanvasTool {
   
 }
 
-/**
- * キット作成機能の中核を成すクラス
- */
 class MakeKitApp {
-  /**
-   * @constructs MakeKitApp
-   * @description いろいろと必要な変数を定義したりツールバーや部品の周りにどのツールを表示するか決めたりした後，最後にhandleEvent()とhandleRefresh()を呼んでいる
-   * @todo ひとまずバグ機能とかに関連しそうなところだけ精読しているので，@descriptionとかは後で変更が必要になるかも
-   * @todo textSelectionTool.on()はjQueryのon()とは違うので，詳しいことを知るにはKitBuildTextSelectionToolの継承元であるKitBuildCanvasToolの中身を読む必要がある
-   */
   constructor() {
     this.kbui = KitBuildUI.instance(MakeKitApp.canvasId)
     this.kitMap = null;
@@ -332,18 +323,11 @@ class MakeKitApp {
       partitionTool: partitionTool
     }));
 
-    /**
-     * マップ-テキスト対応づけ機能［教授者側：個々の部品に対応するテキストの範囲を指定，学習者側：個々の部品について，教授者側で指定した範囲を確認可能］を提供するツールをインスタンス化したもの
-     * @type {KitBuildTextSelectionTool}
-     * @memberof MakeKitApp#
-     */
     let textSelectionTool = new KitBuildTextSelectionTool(canvas, {
       element: '#kit-content-dialog .content'
     });
-    // bind()により，対象の関数におけるthisの参照先をbind()の引数として与えたオブジェクトに変更できるらしい．ここでは，別で定義したイベントハンドラを紐づけている的な感じだと思う．
-    // ChatGPTによれば，このとき，onTextSelectionToolEvent()が受け取る引数はtextSelectionToolのeventイベントが発生した際の引数と一致するらしい
     textSelectionTool.on('event', this.onTextSelectionToolEvent.bind(this));
-    canvas.canvasTool.addTool("text-select", textSelectionTool); // addTool()は，.asset/vendor/kitbuild/kbui.canvas.tool.jsで実装されている
+    canvas.canvasTool.addTool("text-select", textSelectionTool);
 
     let distanceColorTool = new KitBuildDistanceColorTool(canvas, {});
     distanceColorTool.on('event', this.onDistanceColorToolEvent.bind(this));
@@ -360,11 +344,6 @@ class MakeKitApp {
       node.removeStyle('border-color border-opacity');
     })
 
-    /**
-     * バグ機能［教授者側：個々の部品へのバグ（想定し得る誤答）の追加，学習者側：バグが追加された部品について，正しいラベルとバグの一覧からラベルを選択することで解答］を提供するツールをインスタンス化したもの
-     * @type {KitBuildBugTool}
-     * @memberof MakeKitApp#
-     */
     this.bugTool = new KitBuildBugTool(canvas, {
       dialogContainerSelector: '#admin-content-panel'
     });
@@ -406,31 +385,16 @@ class MakeKitApp {
     }
   }
 
-  /**
-   * @function setKitMap 与えられたkitMapオブジェクトに基づいて，セッションや表示要素の更新などを行う関数
-   * @description マップ-テキスト対応づけ機能の追加にあたり，現在canvas上にあるキットにテキストが対応づけられていたらそのテキストのオブジェクトを取得し，それをダイアログにセットする，という処理が追加された
-   * @todo 関数の名前とかでやっていることの雰囲気はつかめたのと，それぞれの関数とかの本体がどこにあるか分からなかったのでとりあえずはそんなに深掘りしなかったが，本当はsetConceptMap()とかを読まないといけない
-   * @todo kitMapの正体（どのように作られるのか）の特定も必要
-   * @param {Object} kitMap 現在のキットの状態が格納されているオブジェクト．まだ正体がよく分からないので，console.warn()で出てきたプロパティを@paramを使って書いておいた．
-   * @param {Object} kitMap.conceptMap これの下にさらにconcepts，links，linktargets，map，がある．中身を見た感じ，ゴールマップの情報が入っているものと思われる．
-   * @param {Object} kitMap.concepts 現在のcanvas上のそれぞれのノードについて，IDやバグ・正解ラベル，座標，などが格納されている（通常のラベルは格納されていない）
-   * @param {Object} kitMap.links 現在のcanvas上のそれぞれのリンクについて，IDやバグ・正解ラベル，接続元のノードの情報，座標，などが格納されている（通常のラベルは格納されていない）
-   * @param {Object} kitMap.linktargets 現在のcanvas上のそれぞれのリンクについて，IDや接続先のノードの情報，などが格納されている
-   * @param {Object} kitMap.map 現在開いているキットについて，対応するゴールマップやこのキットのID，キットの名前，対応づけられているテキストのID，などが格納されている
-   * @memberof MakeKitApp
-   */
   setKitMap(kitMap) { console.warn("KIT MAP SET:", kitMap)
     this.kitMap = kitMap
     if (kitMap) {
-      this.setConceptMap(kitMap.conceptMap); // ステータスバーのコンテンツのうち，ゴールマップに関するものについてはこの中で生成・追加される
+      this.setConceptMap(kitMap.conceptMap);
       this.session.set('kid', kitMap.map.kid);
       if (kitMap && kitMap.map && kitMap.map.text) {
         this.ajax.get(`contentApi/getText/${kitMap.map.text}`).then(text => {
-          // console.log(text); 
           this.contentDialog.setContent(text);
         });
       }
-      // ステータスバーのコンテンツのうち，キットに関するものを生成・追加する
       let status = `<span class="mx-2 d-flex align-items-center status-kit">`
         + `<span class="badge rounded-pill bg-primary">ID: ${kitMap.map.kid}</span>`
         + `<span class="text-secondary ms-2 text-truncate"><small>${kitMap.map.name}</small></span>`
@@ -557,10 +521,6 @@ class MakeKitApp {
     }
   }
 
-  /**
-   * @function handleEvent イベントハンドラを定義する関数．画面左側のメニューには表示されていないが，イベントハンドラについてもJSDoc形式でコメントを入れているので，そちらも参照されたい．
-   * @memberof MakeKitApp
-   */
   handleEvent() {
 
     let saveAsDialog = UI.modal('#kit-save-as-dialog', {
@@ -759,13 +719,6 @@ class MakeKitApp {
       return textDialog
     }
 
-    /**
-     * マップ-テキスト対応づけ機能で利用されるテキスト表示用のダイアログ
-     * @type {Modal}
-     * @memberof MakeKitApp#
-     * @todo オプションの一覧について，ドキュメントとしてまとめた方がいいのかもしれない
-     * @todo showdownとhighlight.jsを使っているところがあるので，それらについても勉強が必要
-     */
     this.contentDialog = UI.modal('#kit-content-dialog', {
       hideElement: '.bt-close',
       backdrop: false,
@@ -791,24 +744,11 @@ class MakeKitApp {
         if (typeof hljs != "undefined") hljs.highlightAll();
       }
     });
-
-    /**
-     * @function setContent 引数として与えられたテキストのオブジェクトをダイアログにセットする関数
-     * @param {Object} text ダイアログにセットしたいテキストのオブジェクト
-     * @param {string} type テキストの種類．ソースコード内を検索してみたところ，種類としては'plain'（プレーンテキスト）と'md'（Markdown）がありそう
-     * @return {Object} マップ-テキスト対応づけ機能で利用されるテキスト表示用のダイアログ
-     * @memberof MakeKitApp#
-     */
     this.contentDialog.setContent = (text, type = 'md') => {
       this.contentDialog.text = text;
       return this.contentDialog;
     }
 
-    /**
-     * バグ追加用のダイアログ
-     * @type {Modal}
-     * @memberof MakeKitApp#
-     */
     this.bugDialog = UI.modal('#bug-dialog', {});
     this.bugTool.dialog = this.bugDialog;
   
@@ -1151,12 +1091,6 @@ class MakeKitApp {
       })
     })
   
-    /**
-     * list-text（"Content"ボタンを押した際に出てくるダイアログに表示されている，テキストの一覧）内のbt-assign（"Assign"ボタン）が押された際に発火する関数．対応するテキストのキットへの対応づけ，および表示の更新を行う関数
-     * @description マップ-テキスト対応づけ機能の追加にあたり，contentApi/getTextによって取得したテキストのオブジェクトをthis.contentDialogにセットする，という処理が追加された［setKitMap()内に同じ処理があるので，追加しなくてもよかったような気もするが...］
-     * @todo 関数の名前とかでやっていることの雰囲気はつかめたのでとりあえずはそんなに深掘りしなかったが，本当はAPIの中身とかを読まないといけない
-     * @param {e} e 現在発火しているclickイベント
-     */
     $('#list-text').on('click', '.bt-assign', e => {
       e.preventDefault()
       let tid = $(e.currentTarget).parents('.text-item').attr('data-tid')
@@ -1195,10 +1129,7 @@ class MakeKitApp {
     /** 
      * Content
      * */
-    /**
-     * app-navbar（"Open Kit"ボタンなどがあるツールバー）内のbt-text［存在しなさそうなのでbt-content（"Content"ボタン）のまちがい？しかし，それはそれで挙動がおかしくなる］が押された際に発火する関数．キットが開かれていなければキットを開く必要がある旨をダイアログとして表示し，そうでなければマップ-テキスト対応づけ機能で利用されるテキスト表示用のダイアログを表示する．
-     * @return {(undefined|void)}
-     */
+  
     $('.app-navbar').on('click', '.bt-text', () => { // console.log(RecomposeApp.inst)
       if (!MakeKitApp.inst.kitMap) {
         UI.dialog('Please open a kit to see its content.').show();
@@ -1207,21 +1138,13 @@ class MakeKitApp {
       this.contentDialog.show();
     })
   
-    /**
-     * kit-content-dialog（マップ-テキスト対応づけ機能で利用されるテキスト表示用のダイアログ）内のbt-scroll-top（"Back to Top"ボタン）が押された際に発火する関数．kit-content-dialog内のcontent（テキストのコンテンツがが表示されている部分）の親要素を，200ミリ秒かけて一番上までスクロールする．
-     * @param {e} e 現在発火しているclickイベント
-     */
     $('#kit-content-dialog .bt-scroll-top').on('click', (e) => {
       $('#kit-content-dialog .content').parent().animate({scrollTop: 0}, 200)
     })
   
-    /**
-     * kit-content-dialog内のbt-scroll-more（"More"ボタン）が押された際に発火する関数．kit-content-dialog内のcontentの親要素を，200ミリ秒かけて下にスクロールする．
-     * @param {e} e 現在発火しているclickイベント
-     */
     $('#kit-content-dialog .bt-scroll-more').on('click', (e) => {
       let height = $('#kit-content-dialog .content').parent().height()
-      let scrollTop = $('#kit-content-dialog .content').parent().scrollTop() // 引数を与えずにscrollTop()を実行した場合，現在のスクロール位置を取得できる
+      let scrollTop = $('#kit-content-dialog .content').parent().scrollTop()
       $('#kit-content-dialog .content').parent().animate({scrollTop: scrollTop + height - 16}, 200)
     })
   
@@ -1384,26 +1307,6 @@ class MakeKitApp {
   
   }
 
-  /**
-   * @function onTextSelectionToolEvent マップ-テキスト対応づけ機能に関連するイベントハンドラを定義する関数
-   * @description ツールのボタンが押されたとき（case 'action'）はマップ-テキスト対応づけ機能で利用されるテキスト表示用のダイアログを表示し，教授者が設定した範囲を再現する．
-   * コンテンツ上で操作が行われた場合（case 'select'），ユーザがある一点をクリックしたのであればマップとテキストの対応情報を削除する．
-   * ユーザがテキストの一部分を選択したのであれば，対応情報をnode.dataに格納する．
-   * @todo やっていることの雰囲気はつかめたのでとりあえずはそんなに深掘りしなかったが，本当はthis.canvas.canvasTool.tools.get()の正体を特定する必要がある
-   * @param {string} canvasId Cytoscape.jsの描画対象となるcanvas要素のIDだと思う．console.log()してみたら下の方で設定されている"makekit-canvas"が出てきた．
-   * @param {string} event 現在発火しているイベントの種類
-   * @todo eventの種類，switch文の書き方的にactionとselectの2つに限定されている可能性があるので，自前のものかもしれない（その証拠に，eventがactionのとき，data.eventはclickだったりしたので）．
-   * @param {Object} data どの部品でどのようなイベントが発火したか，という情報を含んだオブジェクト．eventがactionの場合とselectの場合で内容が変わる．詳細は以下を参照．
-   * @param {Object} data.node 現在発火しているイベントに対応する部品の情報を含んだオブジェクト．IDやラベル，ノードなのかリンクなのかや，data.start/data.endあるいはdata.selection.start/data.selection.endに対応する情報，などが格納されている．
-   * @param {string} [data.event] 現在，実際に発火しているイベントの種類．eventがactionの場合にdataに格納される．
-   * @param {number} [data.start] ユーザが過去に選択した（i.e., 教授者が設定した）範囲の開始位置のインデックス．eventがactionの場合にdataに格納される．
-   * @param {number} [data.end] 教授者が設定した範囲の終了位置のインデックス．eventがactionの場合にdataに格納される．
-   * @param {Object} [data.selection] 教授者が設定した範囲の開始位置および終了位置のインデックスを含むオブジェクト．eventがselectの場合にdataに格納される．
-   * @param {number} [data.selection.start] 教授者が設定した範囲の開始位置のインデックス
-   * @param {number} [data.selection.end] 教授者が設定した範囲の終了位置のインデックス
-   * @param {Object} options イベントの取り扱いにあたってのオプション？2023/9/21時点では使用されていない．
-   * @memberof MakeKitApp
-   */
   onTextSelectionToolEvent(canvasId, event, data, options) {
     // console.log(this, canvasId, event, data, options);
     switch(event) {
@@ -1411,7 +1314,7 @@ class MakeKitApp {
         this.contentDialog.show();
         let element = $('#kit-content-dialog .content').get(0);
         if (data.start && data.end) {
-          let textSelectionTool = this.canvas.canvasTool.tools.get("text-select"); // text-selectは，addTool()の際に指定したツールのID
+          let textSelectionTool = this.canvas.canvasTool.tools.get("text-select");
           textSelectionTool.restoreSelection(element, {
             start: data.start,
             end: data.end
@@ -1420,7 +1323,7 @@ class MakeKitApp {
         break;
       case 'select':
         if (data.node) {
-          let node = this.canvas.cy.nodes(`#${data.node.id}`); // イベントが発生したノードのオブジェクトを取得
+          let node = this.canvas.cy.nodes(`#${data.node.id}`);
           let sel = data.selection;
           if (sel.start == sel.end) {
             node.removeData('selectStart selectEnd');
@@ -1479,16 +1382,6 @@ class MakeKitApp {
     }
   }
   
-  /**
-   * @function onBugToolEvent バグ機能に関連するイベントハンドラを定義する関数
-   * @description ツールのボタンが押されたとき（case 'action'）は個々の部品にバグを追加するためのダイアログを表示し，ダイアログ内のフォームの初期値を設定する
-   * @param {string} canvasId Cytoscape.jsの描画対象となるcanvas要素のIDだと思う．console.log()してみたら下の方で設定されている"makekit-canvas"が出てきた．
-   * @param {string} event 現在発火しているイベントの種類
-   * @param {Object} data 現在発火しているイベントに対応する部品の情報を含んだオブジェクト（data.node）を含んだオブジェクト
-   * @param {Object} data.node 現在発火しているイベントに対応する部品の情報を含んだオブジェクト．IDやラベル，ノードなのかリンクなのか，などが格納されている．対象の部品がバグを含んでいる場合は，正しいラベルやバグの情報についても格納される．
-   * @param {Object} options イベントの取り扱いにあたってのオプション？2023/9/21時点では使用されていない．
-   * @memberof MakeKitApp
-   */
   onBugToolEvent(canvasId, event, data, options) {
     // console.log(canvasId, event, data, options);
     switch(event) {
